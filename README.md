@@ -3,7 +3,7 @@ This tool is used to modify DTR config stored in UCP and disable BatchScanningDa
 
 # Usage
 ```
-docker run -it dlouca/disablescan:latest -a 34.205.41.253 -u admin
+[centos@dlouca ~]$ docker run -it dlouca/disablescan:latest -a 34.205.41.253 -u admin
 Password for UCP user admin: 
 ***** Please save this output; Original config 
 
