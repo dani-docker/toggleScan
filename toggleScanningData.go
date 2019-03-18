@@ -18,38 +18,54 @@ import (
 )
 
 type (
+	// Credentials struct is the UCP credentials used for login
 	Credentials struct {
 		Username string `json:"username,omitempty"`
 		Password string `json:"password,omitempty"`
 		Token    string `json:"token,omitempty"`
 	}
+	// LoginResponse struct is the reply to the login attempt, it contains the session token
 	LoginResponse struct {
 		Token string `json:"auth_token,omitempty"`
 	}
-
+	// DockerTrustedRegistry struct is the DTR config stored in UCP
 	DockerTrustedRegistry struct {
 		HostAddress              string `json:"hostAddress"`
 		ServiceID                string `json:"serviceID"`
 		CABundle                 string `json:"caBundle"`
 		BatchScanningDataEnabled bool   `json:"batchScanningDataEnabled"`
 	}
+	// Registries struct is a list of DockerTrustedRegistry configs
 	Registries struct {
 		Registries []DockerTrustedRegistry
 	}
 )
 
 func main() {
-	address := flag.String("a", "", "UCP Address")
-	username := flag.String("u", "", "username")
+	help := flag.Bool("-h", false, "print help menu")
+	address := flag.String("a", "", "UCP address")
+	username := flag.String("u", "", "UCP username")
+	scanToggle := flag.String("s", "disable", "enable or disable UCP Scanning Data endpoint")
 	flag.Parse()
+	if *help {
+		flag.PrintDefaults()
+		return
+	}
 	if *username == "" {
 		fmt.Println("Error: UCP Username is not provided")
+		flag.PrintDefaults()
 		return
 	}
 	if *address == "" {
 		fmt.Println("Error: UCP Address is not provided")
+		flag.PrintDefaults()
+		return
 	}
-
+	if *scanToggle != "enable" && *scanToggle != "disable" {
+		fmt.Printf("Error: -s cannot be %s ; choose enable or disable \n", *scanToggle)
+		flag.PrintDefaults()
+		return
+	}
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -67,39 +83,37 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	fmt.Printf("***** Please save this output; Original config prior to %s Scanning Data endpoint *****\n\n\n", *scanToggle)
+	printPrettyJson(originalDTRConfigs)
 
-	dst := &bytes.Buffer{}
-	fmt.Println("***** Please save this output; Original config \n\n\n *****")
-	src, err := json.Marshal(originalDTRConfigs)
+	err = toggleScanFlag(*address, token, client, originalDTRConfigs, *scanToggle == "disable")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Printf("\n\n\n ***** Successfuly %sd UCP Scanning Data endpoint. New Config ***** \n\n\n", *scanToggle)
+	newDTRConfigs, err := getDTRConfigs(*address, token, client)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	printPrettyJson(newDTRConfigs)
+	return
+}
+
+func printPrettyJson (registries Registries) {
+	src, err := json.Marshal(registries)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	dst := &bytes.Buffer{}
 	if err := json.Indent(dst, src, "", "  "); err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println(dst.String())
-
-	err = disableScanFlag(*address, token, client, originalDTRConfigs)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println("***** Successfuly disabled scan to all DTR instances. New Config *****")
-	newdst := &bytes.Buffer{}
-	newDTRConfigs, err := getDTRConfigs(*address, token, client)
-	newsrc, err := json.Marshal(newDTRConfigs)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if err := json.Indent(newdst, newsrc, "", "  "); err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(newdst.String())
 	return
 }
 
@@ -145,7 +159,7 @@ func getUCPToken(username string, adress string, client *http.Client) (string, e
 	return "", errors.New("Failed to get UCP session token")
 }
 
-func disableScanFlag(address string, token string, client *http.Client, registries Registries) error {
+func toggleScanFlag(address string, token string, client *http.Client, registries Registries, disable bool) error {
 	bearer := "Bearer " + token
 	endpoint := &url.URL{
 		Scheme: "https",
@@ -154,7 +168,7 @@ func disableScanFlag(address string, token string, client *http.Client, registri
 	}
 
 	for _, dtrconfig := range registries.Registries {
-		dtrconfig.BatchScanningDataEnabled = false
+		dtrconfig.BatchScanningDataEnabled = !disable
 		reqJSON, err := json.Marshal(dtrconfig)
 		if err != nil {
 			return err
