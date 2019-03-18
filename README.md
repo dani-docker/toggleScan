@@ -3,7 +3,7 @@ This tool is used to modify DTR config stored in UCP and enable/disable BatchSca
 
 # Usage
 ```
-docker run -it togglescan:latest -a 34.205.41.253 -u admin
+docker run -it dlouca/togglescan:latest -a 34.205.41.253 -u admin
 Password for UCP user admin:
 ***** Please save this output; Original config prior to disable Scanning Data endpoint *****
 
@@ -51,4 +51,4 @@ Password for UCP user admin:
 To enable the Scanning Data endpoint, run the tool with `-s enable` flag
 
 Example:
-`docker run -it togglescan:latest -a 34.205.41.253 -u admin -s enable`
+`docker run -it dlouca/togglescan:latest -a 34.205.41.253 -u admin -s enable`
