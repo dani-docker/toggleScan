@@ -1,14 +1,13 @@
 # disableScan
-This tool is used to modify DTR config stored in UCP and disable BatchScanningDataEnabled
+This tool is used to modify DTR config stored in UCP and enable/disable BatchScanningDataEnabled
 
 # Usage
 ```
-[centos@dlouca ~]$ docker run -it dlouca/disablescan:latest -a 34.205.41.253 -u admin
-Password for UCP user admin: 
-***** Please save this output; Original config 
+docker run -it togglescan:latest -a 34.205.41.253 -u admin
+Password for UCP user admin:
+***** Please save this output; Original config prior to disable Scanning Data endpoint *****
 
 
- *****
 {
   "Registries": [
     {
@@ -25,7 +24,12 @@ Password for UCP user admin:
     }
   ]
 }
-***** Successfuly disabled scan to all DTR instances. New Config *****
+
+
+
+ ***** Successfuly disabled UCP Scanning Data endpoint. New Config *****
+
+
 {
   "Registries": [
     {
@@ -42,5 +46,9 @@ Password for UCP user admin:
     }
   ]
 }
-
 ```
+
+To enable the Scanning Data endpoint, run the tool with `-s enable` flag
+
+Example:
+`docker run -it togglescan:latest -a 34.205.41.253 -u admin -s enable`
